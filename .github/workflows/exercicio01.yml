@@ -1,0 +1,36 @@
+name: 'Exercício 01 - Validação'
+
+on:
+  pull_request:
+    paths:
+      - 'exercicio-01/**'
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+      
+      - name: Instalar Node.js
+        uses: actions/setup-node@v3
+        with:
+          node-version: '18'
+      
+      - name: Validar estrutura
+        run: |
+          if [ ! -d "exercicio-01/HelloMobile" ]; then
+            echo "❌ Pasta HelloMobile não encontrada"
+            exit 1
+          fi
+          echo "✅ Estrutura OK"
+      
+      - name: Comentar no PR
+        uses: actions/github-script@v6
+        with:
+          script: |
+            github.rest.issues.createComment({
+              issue_number: context.issue.number,
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              body: '🎉 **Exercício 01 validado!**\n\n✅ Estrutura correta\n\n**Score:** 100/100\n\nParabéns! 🚀'
+            })
