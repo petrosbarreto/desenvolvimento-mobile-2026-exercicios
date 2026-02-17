@@ -1,0 +1,257 @@
+name: Validar Exercício - Aula 01
+
+on:
+  pull_request:
+    paths:
+      - 'exercicios/aula01/**'
+  push:
+    branches:
+      - main
+    paths:
+      - 'exercicios/aula01/**'
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout código
+        uses: actions/checkout@v3
+      
+      - name: Setup JDK 17
+        uses: actions/setup-java@v3
+        with:
+          distribution: 'temurin'
+          java-version: '17'
+      
+      - name: Verificar estrutura do projeto
+        id: check-structure
+        run: |
+          echo "🔍 Verificando estrutura do projeto Android..."
+          SCORE=0
+          ERRORS=""
+          PROJECT_PATH="exercicios/aula01/HelloMobile"
+          
+          # Verificar se pasta HelloMobile existe
+          if [ -d "$PROJECT_PATH" ]; then
+            echo "✅ Pasta HelloMobile encontrada"
+            SCORE=$((SCORE + 10))
+          else
+            echo "❌ Pasta HelloMobile não encontrada"
+            ERRORS="${ERRORS}\n- Crie o projeto com nome HelloMobile"
+            echo "score=$SCORE" >> $GITHUB_OUTPUT
+            echo "errors<<EOF" >> $GITHUB_OUTPUT
+            echo -e "$ERRORS" >> $GITHUB_OUTPUT
+            echo "EOF" >> $GITHUB_OUTPUT
+            exit 0
+          fi
+          
+          # Verificar MainActivity.kt
+          MAIN_ACTIVITY=$(find $PROJECT_PATH -name "MainActivity.kt" | head -1)
+          if [ -f "$MAIN_ACTIVITY" ]; then
+            echo "✅ MainActivity.kt encontrada"
+            SCORE=$((SCORE + 10))
+            
+            # Verificar package name
+            if grep -q "package com\." "$MAIN_ACTIVITY"; then
+              echo "✅ Package name correto"
+              SCORE=$((SCORE + 5))
+            else
+              ERRORS="${ERRORS}\n- Package name deve começar com com.seuusername"
+            fi
+            
+            # Verificar array de cores
+            if grep -q "Color.parseColor" "$MAIN_ACTIVITY"; then
+              echo "✅ Array de cores encontrado"
+              SCORE=$((SCORE + 10))
+            else
+              echo "❌ Array de cores não encontrado"
+              ERRORS="${ERRORS}\n- Adicione array com Color.parseColor"
+            fi
+            
+            # Verificar findViewById
+            if grep -q "findViewById" "$MAIN_ACTIVITY"; then
+              echo "✅ findViewById implementado"
+              SCORE=$((SCORE + 10))
+            else
+              echo "❌ findViewById não encontrado"
+              ERRORS="${ERRORS}\n- Use findViewById para pegar as views"
+            fi
+            
+            # Verificar setOnClickListener
+            if grep -q "setOnClickListener" "$MAIN_ACTIVITY"; then
+              echo "✅ setOnClickListener implementado"
+              SCORE=$((SCORE + 10))
+            else
+              echo "❌ setOnClickListener não encontrado"
+              ERRORS="${ERRORS}\n- Adicione setOnClickListener no botão"
+            fi
+            
+            # Verificar setBackgroundColor
+            if grep -q "setBackgroundColor" "$MAIN_ACTIVITY"; then
+              echo "✅ setBackgroundColor implementado"
+              SCORE=$((SCORE + 10))
+            else
+              echo "❌ setBackgroundColor não encontrado"
+              ERRORS="${ERRORS}\n- Use setBackgroundColor para mudar cor"
+            fi
+          else
+            echo "❌ MainActivity.kt não encontrada"
+            ERRORS="${ERRORS}\n- Crie MainActivity.kt"
+          fi
+          
+          # Verificar activity_main.xml
+          LAYOUT_XML=$(find $PROJECT_PATH -path "*/layout/activity_main.xml" | head -1)
+          if [ -f "$LAYOUT_XML" ]; then
+            echo "✅ activity_main.xml encontrado"
+            SCORE=$((SCORE + 10))
+            
+            # Verificar LinearLayout com id
+            if grep -q 'android:id="@+id/rootLayout"' "$LAYOUT_XML"; then
+              echo "✅ LinearLayout com id correto"
+              SCORE=$((SCORE + 5))
+            else
+              ERRORS="${ERRORS}\n- LinearLayout precisa ter id rootLayout"
+            fi
+            
+            # Verificar TextViews
+            TV_COUNT=$(grep -c '<TextView' "$LAYOUT_XML" || echo "0")
+            if [ "$TV_COUNT" -ge 3 ]; then
+              echo "✅ 3+ TextViews encontrados"
+              SCORE=$((SCORE + 5))
+            else
+              ERRORS="${ERRORS}\n- Adicione pelo menos 3 TextViews"
+            fi
+            
+            # Verificar Button com id
+            if grep -q 'android:id="@+id/btnMudarCor"' "$LAYOUT_XML"; then
+              echo "✅ Button com id correto"
+              SCORE=$((SCORE + 5))
+            else
+              ERRORS="${ERRORS}\n- Button precisa ter id btnMudarCor"
+            fi
+            
+            # Verificar personalização
+            if ! grep -q 'Seu Nome' "$LAYOUT_XML" && ! grep -q 'Matrícula:' "$LAYOUT_XML"; then
+              echo "✅ Conteúdo personalizado"
+              SCORE=$((SCORE + 10))
+            else
+              ERRORS="${ERRORS}\n- Personalize os TextViews com seu nome"
+            fi
+          else
+            echo "❌ activity_main.xml não encontrado"
+            ERRORS="${ERRORS}\n- Crie activity_main.xml no res/layout"
+          fi
+          
+          # Verificar build.gradle
+          BUILD_GRADLE=$(find $PROJECT_PATH -name "build.gradle*" | head -1)
+          if [ -f "$BUILD_GRADLE" ]; then
+            if grep -q "minSdk.*24" "$BUILD_GRADLE" || grep -q "minSdkVersion 24" "$BUILD_GRADLE"; then
+              echo "✅ MinSDK 24 configurado"
+              SCORE=$((SCORE + 5))
+            else
+              ERRORS="${ERRORS}\n- Configure minSdk = 24"
+            fi
+          fi
+          
+          echo "score=$SCORE" >> $GITHUB_OUTPUT
+          echo "errors<<EOF" >> $GITHUB_OUTPUT
+          echo -e "$ERRORS" >> $GITHUB_OUTPUT
+          echo "EOF" >> $GITHUB_OUTPUT
+          
+          echo ""
+          echo "📊 SCORE: $SCORE/100"
+      
+      - name: Tentar compilar o projeto (opcional)
+        id: build-project
+        continue-on-error: true
+        run: |
+          PROJECT_PATH="exercicios/aula01/HelloMobile"
+          if [ -d "$PROJECT_PATH" ] && [ -f "$PROJECT_PATH/gradlew" ]; then
+            echo "🔨 Tentando compilar o projeto..."
+            cd $PROJECT_PATH
+            chmod +x gradlew
+            ./gradlew assembleDebug --no-daemon --stacktrace || echo "build_failed=true" >> $GITHUB_OUTPUT
+          else
+            echo "⚠️ Projeto não tem gradlew, pulando compilação"
+          fi
+      
+      - name: Comentar no PR
+        if: github.event_name == 'pull_request'
+        uses: actions/github-script@v6
+        with:
+          script: |
+            const score = parseInt('${{ steps.check-structure.outputs.score }}');
+            const errors = `${{ steps.check-structure.outputs.errors }}`;
+            const buildFailed = '${{ steps.build-project.outputs.build_failed }}';
+            
+            let emoji = '⭐';
+            let level = 'Regular';
+            let message = '';
+            
+            if (score >= 90) {
+              emoji = '🌟🌟🌟';
+              level = 'Excelente';
+              message = '🎉 Perfeito! Você dominou os conceitos da Aula 01!';
+            } else if (score >= 70) {
+              emoji = '⭐⭐';
+              level = 'Bom';
+              message = '✅ Ótimo trabalho! Exercício aprovado.';
+            } else if (score >= 50) {
+              emoji = '⭐';
+              level = 'Regular';
+              message = '📝 Bom começo, mas precisa de melhorias.';
+            } else {
+              emoji = '❌';
+              level = 'Precisa Melhorar';
+              message = '🔧 Revise os requisitos e tente novamente.';
+            }
+            
+            const body = `## 🤖 Validação Automática - Aula 01
+            
+            ### 📊 Resultado: **${score}/100** ${emoji}
+            **Nível:** ${level}
+            
+            ${message}
+            
+            ${errors ? '### ❌ Problemas Encontrados:\n' + errors : '### ✅ Todos os requisitos atendidos!'}
+            
+            ${buildFailed ? '\n⚠️ **Atenção:** O projeto não compilou. Verifique os erros no Gradle.\n' : ''}
+            
+            ${score >= 70 ? '✅ **Exercício APROVADO!** Parabéns! 🎉' : '❌ **Exercício REPROVADO.** Score mínimo: 70/100'}
+            
+            ---
+            
+            ### 💡 Próximos Passos:
+            ${score >= 70 
+              ? '- Continue para a Aula 02: Kotlin Essentials\n- Explore funcionalidades extras para ganhar pontos bônus'
+              : '- Corrija os problemas listados acima\n- Faça commit e push novamente\n- O bot validará automaticamente'
+            }
+            
+            ### 📚 Recursos Úteis:
+            - [Documentação Android](https://developer.android.com)
+            - [Kotlin for Android](https://developer.android.com/kotlin)
+            - [Slides da Aula 01](https://github.com/petrosbarreto/desenvolvimento-mobile-2026)
+            
+            ### 🆘 Precisa de Ajuda?
+            - Abra uma issue com tag \`dúvida\`
+            - Pergunte no grupo da turma
+            - Consulte o [GUIA-PASSO-A-PASSO.md](https://github.com/petrosbarreto/desenvolvimento-mobile-2026-exercicios/blob/main/GUIA-PASSO-A-PASSO.md)
+            
+            ---
+            
+            _Validação executada em: ${new Date().toLocaleString('pt-BR', {timeZone: 'America/Recife'})}_  
+            _Powered by GitHub Actions 🤖_`;
+            
+            github.rest.issues.createComment({
+              issue_number: context.issue.number,
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              body: body
+            });
+      
+      - name: Definir status do check
+        if: steps.check-structure.outputs.score < 70
+        run: |
+          echo "❌ Score abaixo de 70/100. PR precisa de melhorias."
+          exit 1
