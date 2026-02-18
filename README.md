@@ -1,176 +1,230 @@
-# 📱 Exercícios - Desenvolvimento Mobile 2026.1
+# 📱 Desenvolvimento Mobile 2026 - Exercícios
 
 **Professor:** Petros Barreto  
 **Instituição:** UNIT - Universidade Tiradentes  
-**Disciplina:** Desenvolvimento Mobile (Android + Flutter)  
-**Período:** 2026.1 
+**Período:** 2026.1
 
 ---
 
-## 🎯 Sobre Este Repositório
+## 🎯 Como Funciona
 
-Sistema de exercícios automatizados com **validação via GitHub Actions** e **gamificação**!
+### Para Alunos:
 
-**Como funciona:**
-1. 📝 Fork este repositório
-2. 💻 Faça o exercício
-3. 🚀 Envie via Pull Request
-4. 🤖 Bot valida automaticamente em ~1-2 minutos
-5. 📊 Seu score aparece no ranking!
+1. **Fork** este repositório
+2. **Clone** seu fork
+3. **Resolva** o exercício
+4. **Commit & Push** para seu fork
+5. **Crie Pull Request** para este repositório
+6. **Aguarde** validação automática (1-2 minutos)
+7. **Veja seu score** no check do PR
+8. 🏆 **Apareça no leaderboard** automaticamente!
+
+### ⚠️ IMPORTANTE: PRs NÃO são mergeados!
+
+**Este sistema funciona SEM merge**:
+- ✅ PR é validado automaticamente
+- ✅ Score é registrado
+- ✅ Leaderboard atualiza
+- ❌ **PR NÃO é mergeado** (fica aberto ou é fechado sem merge)
+- 🔒 **Sua solução fica privada** no seu fork
+
+**Por quê?** Para evitar que alunos copiem soluções uns dos outros! 🎓
 
 ---
 
 ## 🏆 Leaderboard
 
-**Ver ranking atualizado em tempo real:**  
+**Ver ranking em tempo real:**  
 👉 **https://petrosbarreto.github.io/desenvolvimento-mobile-2026-exercicios/leaderboard.html**
 
-Atualização: Automática a cada PR aprovado + ranking semanal (segunda 00:00 UTC)
+**Atualização:**
+- Automática quando PR é validado
+- Semanal: Segunda 00:00 UTC
+- Manual: Professor pode forçar update
 
 ---
 
-## 📚 Lista de Exercícios
+## 📂 Estrutura do Seu Fork
 
-### Parte 1: Android Nativo (Aulas 01-20)
+```
+exercicios/
+  aula01/
+    SEU_USUARIO/          ← Crie pasta com seu username GitHub
+      HelloMobile/        ← Projeto Android aqui
+  aula02/
+    SEU_USUARIO/
+      KotlinBasics/
+  ...
+```
 
-| Aula | Tema | Dificuldade | Status |
-|------|------|-------------|--------|
-| 01 | Hello Android - Primeiro App | ⭐ | 🟢 Completo |
-| 02 | Kotlin - Classes e Funções | ⭐ | 🟢 Completo |
-| 03 | Activity Lifecycle | ⭐⭐ | 🟢 Completo |
-| 04 | Layouts XML | ⭐ | 🟢 Completo |
-| 05 | RecyclerView | ⭐⭐ | 🟢 Completo |
-| 06-20 | (Em construção) | - | 🟡 |
-
-### Parte 2: Flutter (Aulas 21-40)
-
-| Aula | Tema | Dificuldade | Status |
-|------|------|-------------|--------|
-| 21-40 | (Em construção) | - | 🟡 |
+**Exemplo:**
+```
+exercicios/aula01/joaosilva/HelloMobile/
+exercicios/aula02/joaosilva/KotlinBasics/
+```
 
 ---
 
-## 🚀 Como Fazer os Exercícios
+## 📝 Passo a Passo Completo
 
-### 1. Fork este repositório
-Clique em **Fork** no canto superior direito
+### 1️⃣ Fazer Fork
 
-### 2. Clone seu fork
+Clique no botão **"Fork"** no canto superior direito deste repositório.
+
+### 2️⃣ Clonar Seu Fork
+
 ```bash
 git clone https://github.com/SEU_USUARIO/desenvolvimento-mobile-2026-exercicios.git
 cd desenvolvimento-mobile-2026-exercicios
 ```
 
-### 3. Crie uma branch
+### 3️⃣ Criar Estrutura
+
 ```bash
-git checkout -b aula01-seu-nome
+# Exemplo para Aula 01
+mkdir -p exercicios/aula01/SEU_USUARIO
+cd exercicios/aula01/SEU_USUARIO
+
+# Criar projeto Android aqui (Android Studio ou linha de comando)
 ```
 
-### 4. Faça o exercício
+### 4️⃣ Desenvolver Exercício
+
+Siga as instruções em `exercicios/aula01/README.md`
+
+### 5️⃣ Commit e Push
+
 ```bash
-cd exercicios/aula01
-# Siga instruções no README.md
-# Crie seu projeto Android/Flutter
+git add .
+git commit -m "Resolve exercício Aula 01"
+git push origin main
 ```
 
-### 5. Commit e Push
-```bash
-git add exercicios/aula01/
-git commit -m "Exercício Aula 01 - Seu Nome"
-git push origin aula01-seu-nome
-```
+### 6️⃣ Criar Pull Request
 
-### 6. Criar Pull Request
-- Vá no GitHub
-- **Compare & pull request**
-- Aguarde validação automática
-- Bot comentará com seu score!
+1. Vá para seu fork no GitHub
+2. Clique em **"Contribute"** → **"Open Pull Request"**
+3. Título: `Exercício Aula 01 - Seu Nome`
+4. Clique em **"Create Pull Request"**
 
----
+### 7️⃣ Aguardar Validação
 
-## 📊 Sistema de Pontuação
+- GitHub Actions vai rodar automaticamente (1-2 min)
+- Resultado aparece na aba **"Checks"** do PR
+- Score aparece no **Summary** do check
 
-**Score por exercício:** 0 a 100 pontos
+### 8️⃣ Ver Resultado
 
-| Critério | Peso | Descrição |
-|----------|------|-----------|
-| **Funcionalidade** | 40% | App compila e funciona corretamente |
-| **Código** | 30% | Qualidade, organização, boas práticas |
-| **Layout/UI** | 20% | Interface organizada e responsiva |
-| **Extras** | 10% | Funcionalidades adicionais (bônus) |
+**✅ Aprovado (≥70 pontos):**
+- Check fica verde ✅
+- Você aparece no leaderboard!
+- Professor pode dar feedback
 
-**Mínimo para aprovação:** 70/100
+**❌ Reprovado (<70 pontos):**
+- Check fica vermelho ❌
+- Veja erros no Summary
+- Corrija e faça novo push (PR atualiza automaticamente)
 
 ---
 
-## 🏅 Badges e Conquistas
+## 🎮 Sistema de Pontuação
 
-| Badge | Requisito |
-|-------|-----------|
-| 🥉 **Bronze** | 10 exercícios com score ≥ 70 |
-| 🥈 **Prata** | 20 exercícios com score ≥ 80 |
-| 🥇 **Ouro** | 30 exercícios com score ≥ 90 |
-| 💎 **Diamante** | 40 exercícios com score ≥ 95 |
-| 🔥 **Streak 5** | 5 exercícios seguidos sem reprovar |
-| ⚡ **Velocista** | PR aprovado em < 10 minutos |
-| 🎯 **Perfeccionista** | 10 exercícios com score 100 |
+### Score por Exercício
 
----
+- **90-100 pts:** 🌟 Excelente! Código perfeito
+- **70-89 pts:** ✅ Aprovado! Bom trabalho
+- **0-69 pts:** ❌ Reprovado. Revise e tente novamente
 
-## 🤖 Bot de Validação
+### Ranking
 
-**Android (Aulas 01-20):**
-- ✅ Estrutura do projeto correta
-- ✅ Código compila (`./gradlew build`)
-- ✅ Requisitos do exercício atendidos
-- ✅ Lint sem erros críticos
-
-**Flutter (Aulas 21-40):**
-- ✅ Projeto compila (`flutter build apk`)
-- ✅ Análise estática OK (`flutter analyze`)
-- ✅ Testes passam (`flutter test`)
-- ✅ Requisitos do exercício atendidos
-
-**Tempo médio de validação:** 1-2 minutos ⚡
-
----
-
-## 📖 Guias
-
-- **[GUIA-RAPIDO.md](./GUIA-RAPIDO.md)** - Comandos essenciais
-- **[SETUP.md](./SETUP.md)** - Como configurar ambiente
+- **Pontuação total** = Soma de todos os exercícios aprovados
+- **Pódio:** Top 3 alunos com mais pontos
+- **Badge "👑 TOP 1"** para o primeiro colocado
 
 ---
 
 ## 🛠️ Requisitos
 
-**Android Nativo:**
+### Android Nativo (Aulas 01-20)
+
 - Android Studio 2023.1+
 - JDK 17+
-- Android SDK 34
+- Android SDK API 34
 - Emulador ou dispositivo físico
 
-**Flutter:**
+### Flutter (Aulas 21-40)
+
 - Flutter SDK 3.16+
 - Dart SDK 3.2+
 - Android Studio + Flutter plugin
+- VS Code + extensões Flutter (opcional)
 
 ---
 
-## 💬 Dúvidas?
+## 🆘 Precisa de Ajuda?
 
-1. **Issues** - Abra uma issue com tag `dúvida`
-2. **Grupo da Turma** - Discord/Telegram/WhatsApp
-3. **Email** - petros_barreto@souunit.com
+### Durante validação:
+
+1. **Check falhou?** Clique em "Details" → veja o Summary com erros
+2. **Não entendeu o erro?** Abra issue com tag `dúvida`
+3. **Código não roda?** Verifique os requisitos mínimos
+
+### Recursos:
+
+- 📚 [Slides das Aulas](https://github.com/petrosbarreto/desenvolvimento-mobile-2026)
+- 📖 [Documentação Android](https://developer.android.com)
+- 🎯 [Kotlin for Android](https://developer.android.com/kotlin)
+- 🦋 [Flutter Docs](https://flutter.dev/docs)
+
+### Professor:
+
+- **Email:** petros_barreto@souunit.com.br
+- **Issues:** Prefira abrir issue no repositório (outros alunos podem ajudar)
+- **Grupo da turma:** _(link será compartilhado em aula)_
 
 ---
 
-## 📈 Estatísticas
+## ❓ FAQ
 
-![Alunos](https://img.shields.io/badge/Alunos-0-blue)
-![Exercícios](https://img.shields.io/badge/Exercícios-40-green)
-![PRs](https://img.shields.io/badge/PRs_Aprovados-0-yellow)
+### Por que meu PR não foi mergeado?
+
+**É proposital!** PRs não são mergeados para manter soluções privadas. Seu score é registrado sem merge.
+
+### Como sei se fui aprovado?
+
+Verifique:
+1. ✅ Check verde no PR
+2. 🏆 Seu nome no leaderboard
+3. Score ≥70 no Summary do check
+
+### Posso reenviar se errei?
+
+**Sim!** Basta:
+1. Corrigir o código
+2. Fazer commit e push
+3. PR atualiza automaticamente
+4. Validação roda de novo
+
+### E se eu copiar de outro aluno?
+
+- Detector de plágio está ativo (em breve)
+- Código similar = pontuação reduzida
+- Cópia descarada = zero + advertência acadêmica
+
+### Quando o leaderboard atualiza?
+
+- Automaticamente após cada PR validado
+- Toda segunda 00:00 UTC (recalcula tudo)
+- Manualmente pelo professor (se necessário)
 
 ---
 
-_"The only way to learn a new programming language is by writing programs in it." – Dennis Ritchie_
+## 📄 Licença
+
+Material educacional de uso exclusivo para alunos da UNIT 2026.1.
+
+---
+
+**Bons estudos! 🚀**
+
+_Sistema desenvolvido por Prof. Petros Barreto com ❤️_

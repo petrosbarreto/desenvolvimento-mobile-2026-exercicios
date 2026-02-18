@@ -1,11 +1,12 @@
-name: Atualizar Leaderboard
+name: Atualizar Leaderboard (via PRs)
 
 on:
-  push:
-    branches:
-      - main
+  pull_request:
+    types: [opened, synchronize, closed]
     paths:
       - 'exercicios/**'
+  schedule:
+    - cron: '0 0 * * 1'  # Toda segunda 00:00 UTC
   workflow_dispatch:
 
 jobs:
@@ -15,50 +16,166 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v3
-        with:
-          fetch-depth: 0
       
-      - name: Coletar scores dos exercícios
-        id: collect-scores
-        run: |
-          echo "📊 Coletando scores dos exercícios..."
-          
-          # Criar arquivo temporário para scores
-          > scores.json
-          echo "{" >> scores.json
-          
-          # Para cada pasta de exercício
-          for ex_dir in exercicios/aula*/*/; do
-            if [ -d "$ex_dir" ]; then
-              aula=$(echo "$ex_dir" | grep -oP 'aula\d+' | head -1)
-              aluno=$(basename "$ex_dir")
+      - name: Coletar scores dos PRs
+        id: collect
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const { owner, repo } = context.repo;
+            
+            // Buscar todos os PRs (abertos e fechados)
+            const allPRs = [];
+            let page = 1;
+            let hasMore = true;
+            
+            while (hasMore) {
+              const { data: prs } = await github.rest.pulls.list({
+                owner,
+                repo,
+                state: 'all',
+                per_page: 100,
+                page
+              });
               
-              # Pular exemplo
-              if [[ "$aluno" == *"exemplo"* ]]; then
-                continue
-              fi
+              allPRs.push(...prs);
+              hasMore = prs.length === 100;
+              page++;
+            }
+            
+            console.log(`📊 Total de PRs encontrados: ${allPRs.length}`);
+            
+            // Coletar exercícios validados
+            const exercicios = [];
+            
+            for (const pr of allPRs) {
+              // Pular PRs de bots
+              if (pr.user.login.includes('bot')) continue;
               
-              echo "  Verificando: $aula - $aluno"
+              // Detectar qual aula pelo título ou arquivos
+              const title = pr.title.toLowerCase();
+              let aulaNum = null;
               
-              # Buscar último score nos logs do Actions (simulado por enquanto)
-              # Em produção, isso viria dos runs do Actions ou de um arquivo de score
-              # Por enquanto, vamos considerar que se a pasta existe, pegou 80 pontos
+              // Extrair número da aula do título
+              const match = title.match(/aula[_\s-]?(\d+)/i);
+              if (match) {
+                aulaNum = parseInt(match[1]);
+              }
               
-              echo "  \"$aluno-$aula\": {\"aluno\": \"$aluno\", \"aula\": \"$aula\", \"score\": 80}," >> scores.json
-            fi
-          done
-          
-          # Fechar JSON
-          echo "}" >> scores.json
-          
-          cat scores.json
+              // Se não achou no título, verificar arquivos modificados
+              if (!aulaNum) {
+                const { data: files } = await github.rest.pulls.listFiles({
+                  owner,
+                  repo,
+                  pull_number: pr.number
+                });
+                
+                for (const file of files) {
+                  const fileMatch = file.filename.match(/exercicios\/aula(\d+)\//);
+                  if (fileMatch) {
+                    aulaNum = parseInt(fileMatch[1]);
+                    break;
+                  }
+                }
+              }
+              
+              if (!aulaNum) continue;
+              
+              // Buscar check runs (validação automática)
+              const { data: checkRuns } = await github.rest.checks.listForRef({
+                owner,
+                repo,
+                ref: pr.head.sha,
+                per_page: 100
+              });
+              
+              // Procurar check de validação da aula
+              const validationCheck = checkRuns.check_runs.find(
+                run => run.name.includes(`Aula ${String(aulaNum).padStart(2, '0')}`)
+              );
+              
+              let score = 0;
+              let aprovado = false;
+              
+              if (validationCheck) {
+                // Extrair score do summary (se disponível)
+                if (validationCheck.output && validationCheck.output.summary) {
+                  const summary = validationCheck.output.summary;
+                  const scoreMatch = summary.match(/Score Final:\s*\*?\*?(\d+)\/100/i);
+                  
+                  if (scoreMatch) {
+                    score = parseInt(scoreMatch[1]);
+                    aprovado = score >= 70;
+                  }
+                }
+                
+                // Se passou o check, consideramos aprovado (mínimo 70)
+                if (validationCheck.conclusion === 'success' && score === 0) {
+                  score = 70;
+                  aprovado = true;
+                }
+              }
+              
+              // Só adicionar se foi validado (score > 0)
+              if (score > 0) {
+                exercicios.push({
+                  aluno: pr.user.login,
+                  aula: aulaNum,
+                  score: score,
+                  aprovado: aprovado,
+                  prNumber: pr.number,
+                  prUrl: pr.html_url,
+                  updatedAt: pr.updated_at
+                });
+                
+                console.log(`✅ ${pr.user.login} - Aula ${aulaNum} - Score: ${score}`);
+              }
+            }
+            
+            console.log(`\n📊 Total de exercícios validados: ${exercicios.length}`);
+            
+            // Agrupar por aluno
+            const alunos = new Map();
+            
+            exercicios.forEach(ex => {
+              if (!alunos.has(ex.aluno)) {
+                alunos.set(ex.aluno, {
+                  nome: ex.aluno,
+                  exercicios: [],
+                  total: 0,
+                  aprovados: 0
+                });
+              }
+              
+              const aluno = alunos.get(ex.aluno);
+              aluno.exercicios.push(ex);
+              aluno.total += ex.score;
+              if (ex.aprovado) aluno.aprovados++;
+            });
+            
+            // Ordenar por pontuação
+            const ranking = Array.from(alunos.values())
+              .sort((a, b) => b.total - a.total);
+            
+            console.log('\n🏆 Ranking:');
+            ranking.forEach((aluno, i) => {
+              console.log(`${i+1}. ${aluno.nome} - ${aluno.total} pts (${aluno.exercicios.length} exercícios)`);
+            });
+            
+            // Salvar dados
+            core.setOutput('exercicios_json', JSON.stringify(exercicios));
+            core.setOutput('ranking_json', JSON.stringify(ranking));
+            
+            return { exercicios, ranking };
       
       - name: Gerar HTML do leaderboard
+        env:
+          EXERCICIOS_DATA: ${{ steps.collect.outputs.exercicios_json }}
+          RANKING_DATA: ${{ steps.collect.outputs.ranking_json }}
         run: |
-          echo "🎨 Gerando HTML do leaderboard..."
+          echo "🎨 Gerando leaderboard.html..."
           
-          # Criar leaderboard.html (versão simplificada por enquanto)
-          cat > leaderboard.html << 'EOF'
+          cat > leaderboard.html << 'HTMLEOF'
           <!DOCTYPE html>
           <html lang="pt-BR">
           <head>
@@ -107,7 +224,9 @@ jobs:
                       text-align: center;
                       box-shadow: 0 10px 30px rgba(0,0,0,0.1);
                       min-width: 200px;
+                      transition: transform 0.3s;
                   }
+                  .podium-item:hover { transform: translateY(-10px); }
                   .podium-item.first {
                       order: 2;
                       margin-top: -20px;
@@ -132,16 +251,34 @@ jobs:
                   }
                   .ranking-row {
                       display: grid;
-                      grid-template-columns: 50px 1fr 100px 150px;
+                      grid-template-columns: 60px 1fr 120px 100px;
                       padding: 15px;
                       border-bottom: 1px solid #eee;
                       align-items: center;
+                      gap: 10px;
                   }
                   .ranking-row:hover { background: #f5f5f5; }
-                  .position { font-weight: bold; font-size: 1.2em; color: #667eea; }
-                  .student-name { font-weight: 500; }
-                  .exercises { color: #666; font-size: 0.9em; }
-                  .score { font-weight: bold; color: #4caf50; font-size: 1.3em; }
+                  .position { font-weight: bold; font-size: 1.3em; color: #667eea; }
+                  .student-info { }
+                  .student-name { font-weight: 600; font-size: 1.1em; margin-bottom: 3px; }
+                  .exercises { color: #666; font-size: 0.85em; }
+                  .score { font-weight: bold; color: #4caf50; font-size: 1.5em; text-align: right; }
+                  .badge {
+                      display: inline-block;
+                      background: #667eea;
+                      color: white;
+                      padding: 4px 10px;
+                      border-radius: 20px;
+                      font-size: 0.75em;
+                      margin-left: 8px;
+                  }
+                  .last-update {
+                      text-align: center;
+                      color: white;
+                      margin-top: 30px;
+                      opacity: 0.8;
+                      font-size: 0.9em;
+                  }
               </style>
           </head>
           <body>
@@ -166,7 +303,7 @@ jobs:
                       </div>
                       <div class="stat-card">
                           <div class="stat-value" id="prs-aprovados">0</div>
-                          <div class="stat-label">PRs Aprovados</div>
+                          <div class="stat-label">PRs Validados</div>
                       </div>
                   </div>
                   
@@ -192,118 +329,94 @@ jobs:
                       <h2 style="margin-bottom: 20px;">📊 Classificação Completa</h2>
                       <div id="ranking-list"></div>
                   </div>
+                  
+                  <div class="last-update">
+                      Última atualização: <span id="last-update"></span>
+                  </div>
               </div>
               
               <script>
-                  // Carregar dados dos exercícios
-                  async function loadRanking() {
-                      const rankingList = document.getElementById('ranking-list');
-                      const alunos = new Map();
-                      
-                      // Escanear pastas de exercícios (simulação client-side)
-                      // Em produção, isso viria de um scores.json gerado pelo Actions
-                      
-                      const exercicios = EXERCICIOS_DATA; // Será injetado pelo workflow
-                      
-                      // Agrupar por aluno
-                      exercicios.forEach(ex => {
-                          if (!alunos.has(ex.aluno)) {
-                              alunos.set(ex.aluno, { nome: ex.aluno, exercicios: [], total: 0 });
-                          }
-                          alunos.get(ex.aluno).exercicios.push(ex);
-                          alunos.get(ex.aluno).total += ex.score;
-                      });
-                      
-                      // Ordenar por pontuação
-                      const ranking = Array.from(alunos.values())
-                          .sort((a, b) => b.total - a.total);
-                      
-                      // Atualizar stats
-                      document.getElementById('total-alunos').textContent = ranking.length;
-                      document.getElementById('prs-aprovados').textContent = exercicios.length;
-                      
-                      if (ranking.length > 0) {
-                          const media = ranking.reduce((sum, a) => sum + a.total, 0) / ranking.length;
-                          document.getElementById('media-geral').textContent = Math.round(media);
-                      }
-                      
-                      // Atualizar pódio
-                      if (ranking.length >= 1) {
-                          document.querySelectorAll('.podium-item.first .student-name')[0].textContent = ranking[0].nome;
-                          document.querySelectorAll('.podium-item.first .score')[0].textContent = ranking[0].total;
-                      }
-                      if (ranking.length >= 2) {
-                          document.querySelectorAll('.podium-item.second .student-name')[0].textContent = ranking[1].nome;
-                          document.querySelectorAll('.podium-item.second .score')[0].textContent = ranking[1].total;
-                      }
-                      if (ranking.length >= 3) {
-                          document.querySelectorAll('.podium-item.third .student-name')[0].textContent = ranking[2].nome;
-                          document.querySelectorAll('.podium-item.third .score')[0].textContent = ranking[2].total;
-                      }
-                      
-                      // Renderizar lista
-                      if (ranking.length === 0) {
-                          rankingList.innerHTML = `
-                              <div class="ranking-row">
-                                  <div class="position">-</div>
-                                  <div class="student-name">?</div>
-                                  <div class="exercises">Aguardando primeiro PR...</div>
-                                  <div class="score">0</div>
-                              </div>
-                          `;
-                      } else {
-                          rankingList.innerHTML = ranking.map((aluno, i) => `
-                              <div class="ranking-row">
-                                  <div class="position">#${i + 1}</div>
-                                  <div class="student-name">${aluno.nome}</div>
-                                  <div class="exercises">${aluno.exercicios.length} exercícios completados</div>
-                                  <div class="score">${aluno.total}</div>
-                              </div>
-                          `).join('');
-                      }
+                  const RANKING_DATA = INJECT_RANKING_DATA;
+                  const EXERCICIOS_DATA = INJECT_EXERCICIOS_DATA;
+                  
+                  // Atualizar stats
+                  document.getElementById('total-alunos').textContent = RANKING_DATA.length;
+                  document.getElementById('prs-aprovados').textContent = EXERCICIOS_DATA.length;
+                  
+                  if (RANKING_DATA.length > 0) {
+                      const media = RANKING_DATA.reduce((sum, a) => sum + a.total, 0) / RANKING_DATA.length;
+                      document.getElementById('media-geral').textContent = Math.round(media);
                   }
                   
-                  // Dados injetados pelo workflow
-                  const EXERCICIOS_DATA = INJECT_DATA_HERE;
+                  // Atualizar pódio
+                  if (RANKING_DATA.length >= 1) {
+                      document.querySelectorAll('.podium-item.first .student-name')[0].textContent = RANKING_DATA[0].nome;
+                      document.querySelectorAll('.podium-item.first .score')[0].textContent = RANKING_DATA[0].total;
+                  }
+                  if (RANKING_DATA.length >= 2) {
+                      document.querySelectorAll('.podium-item.second .student-name')[0].textContent = RANKING_DATA[1].nome;
+                      document.querySelectorAll('.podium-item.second .score')[0].textContent = RANKING_DATA[1].total;
+                  }
+                  if (RANKING_DATA.length >= 3) {
+                      document.querySelectorAll('.podium-item.third .student-name')[0].textContent = RANKING_DATA[2].nome;
+                      document.querySelectorAll('.podium-item.third .score')[0].textContent = RANKING_DATA[2].total;
+                  }
                   
-                  loadRanking();
+                  // Renderizar ranking
+                  const rankingList = document.getElementById('ranking-list');
+                  
+                  if (RANKING_DATA.length === 0) {
+                      rankingList.innerHTML = `
+                          <div class="ranking-row">
+                              <div class="position">-</div>
+                              <div class="student-info">
+                                  <div class="student-name">Aguardando primeiro PR validado...</div>
+                                  <div class="exercises">Faça seu exercício e envie um Pull Request!</div>
+                              </div>
+                              <div></div>
+                              <div class="score">0</div>
+                          </div>
+                      `;
+                  } else {
+                      rankingList.innerHTML = RANKING_DATA.map((aluno, i) => `
+                          <div class="ranking-row">
+                              <div class="position">#${i + 1}</div>
+                              <div class="student-info">
+                                  <div class="student-name">
+                                      ${aluno.nome}
+                                      ${i === 0 ? '<span class="badge">👑 TOP 1</span>' : ''}
+                                  </div>
+                                  <div class="exercises">
+                                      ${aluno.exercicios.length} exercício${aluno.exercicios.length !== 1 ? 's' : ''} • 
+                                      ${aluno.aprovados} aprovado${aluno.aprovados !== 1 ? 's' : ''}
+                                  </div>
+                              </div>
+                              <div class="exercises" style="text-align: center;">
+                                  Média: ${Math.round(aluno.total / aluno.exercicios.length)}
+                              </div>
+                              <div class="score">${aluno.total}</div>
+                          </div>
+                      `).join('');
+                  }
+                  
+                  // Última atualização
+                  document.getElementById('last-update').textContent = new Date().toLocaleString('pt-BR');
               </script>
           </body>
           </html>
-          EOF
+          HTMLEOF
           
-          # Injetar dados no HTML
-          # Por enquanto, array vazio
-          EXERCICIOS_JSON="[]"
+          # Injetar dados
+          RANKING_JSON='${{ steps.collect.outputs.ranking_json }}'
+          EXERCICIOS_JSON='${{ steps.collect.outputs.exercicios_json }}'
           
-          # Coletar dados reais dos exercícios mergeados
-          if [ -d "exercicios" ]; then
-            EXERCICIOS_JSON="["
-            for ex_dir in exercicios/aula*/*/; do
-              if [ -d "$ex_dir" ]; then
-                aula=$(echo "$ex_dir" | grep -oP 'aula\d+' | head -1)
-                aula_num=$(echo "$aula" | grep -oP '\d+')
-                aluno=$(basename "$ex_dir")
-                
-                # Pular exemplo
-                if [[ "$aluno" == *"exemplo"* ]]; then
-                  continue
-                fi
-                
-                # Adicionar ao JSON (score padrão 80 por enquanto)
-                EXERCICIOS_JSON="${EXERCICIOS_JSON}{\"aluno\":\"$aluno\",\"aula\":\"$aula_num\",\"score\":80},"
-              fi
-            done
-            
-            # Remover última vírgula e fechar array
-            EXERCICIOS_JSON=$(echo "$EXERCICIOS_JSON" | sed 's/,$//')
-            EXERCICIOS_JSON="${EXERCICIOS_JSON}]"
-          fi
+          # Escapar para JSON
+          RANKING_JSON=$(echo "$RANKING_JSON" | sed 's/"/\\"/g')
+          EXERCICIOS_JSON=$(echo "$EXERCICIOS_JSON" | sed 's/"/\\"/g')
           
-          echo "Dados coletados: $EXERCICIOS_JSON"
-          
-          # Substituir placeholder
-          sed -i "s/INJECT_DATA_HERE/$EXERCICIOS_JSON/" leaderboard.html
+          # Substituir placeholders
+          sed -i "s|INJECT_RANKING_DATA|$RANKING_JSON|g" leaderboard.html
+          sed -i "s|INJECT_EXERCICIOS_DATA|$EXERCICIOS_JSON|g" leaderboard.html
           
           echo "✅ Leaderboard gerado!"
       
@@ -316,7 +429,7 @@ jobs:
           if git diff --staged --quiet; then
             echo "Nenhuma mudança no leaderboard"
           else
-            git commit -m "🏆 Atualiza leaderboard [bot]"
+            git commit -m "🏆 Atualiza leaderboard (via PRs) [bot]"
             git push
             echo "✅ Leaderboard atualizado!"
           fi
