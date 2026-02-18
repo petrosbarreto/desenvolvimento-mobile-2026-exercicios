@@ -8,7 +8,7 @@ import androidx.appcompat.app.AppCompatActivity
 import com.example.myapplication.R
 
 class MainActivity : AppCompatActivity() {
-
+//para teste
     // Variável para controle do índice da cor
     private var indiceAtual = 0
 
