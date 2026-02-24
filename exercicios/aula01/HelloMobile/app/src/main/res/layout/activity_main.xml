@@ -1,0 +1,57 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:id="@+id/rootLayout"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:orientation="vertical"
+    android:gravity="center"
+    android:padding="24dp">
+
+    <!-- Aqui alguns textviews, testei o background que dar cor ao fundo e conheci um pouco
+    das medidas usadas (ainda só testando, sem muito foco em design)-->
+
+    <TextView
+        android:id="@+id/boasVindas"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="👽 BEM-VINDO AO ANDROID! 👽"
+        android:textColor="#fffafa"
+        android:textSize="19sp"
+        android:background="#800080"
+        android:padding="5sp"
+    />
+
+    <TextView
+        android:id="@+id/nomeDoEstudante"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="Arthur Petrus Barros de Moura"
+        android:textSize="20sp"
+        android:textColor="#808080"
+    />
+
+    <TextView
+        android:id="@+id/matriculaDoEstudante"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="1241309628"
+        android:textSize="15sp"
+        android:textColor="#808080"
+    />
+
+    <!-- Aqui no botão usei esse margin top pra afastar ele um pouco dos textviews e dessa vez
+    o backgroundTint para alterar o fundo, pois o botao ja recebe um estilo padrao-->
+
+    <Button
+        android:id="@+id/mudarCorBtn"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="Mude a Cor"
+        android:textSize="20sp"
+        android:backgroundTint="#C1E190"
+        android:padding="15sp"
+        android:layout_marginTop="15sp"
+        />
+
+</LinearLayout>
